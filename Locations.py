@@ -3,17 +3,17 @@ from typing import TYPE_CHECKING, Callable
 import inspect
 
 if TYPE_CHECKING:
-    from Agent import Agent
-
+    from World import World
 
 class Location:
-    def __init__(self, name):
+    def __init__(self, name: str, world: World):
         self.name = name
         self.description = ""
         self.items = []
         self.adjacent_locations = []
         # Automatically collect all available actions
         self.available_actions = self._get_available_actions()
+        self.world = world
 
     def _get_available_actions(self) -> list[Callable]:
         """Get all methods that could be actions (excluding private methods and built-ins)"""
@@ -24,37 +24,42 @@ class Location:
                 actions.append(method)
         return actions
 
-    def look_for_items(self, agent: 'Agent') -> str:
+    def look_for_items(self) -> str:
         """Search the current location for items and add them to the agent's inventory.
-        
-        Args:
-            agent: The agent performing the search action
             
         Returns:
             A string describing what items were found
         """
-        agent.inventory.extend(self.items)
+        found_items = self.items.copy()
+        self.world.agent.inventory.extend(found_items)
         self.items = []
-        return f"You have found {', '.join(self.items)}."
+        return f"You have found {', '.join(found_items)}."
 
 class TestLocation(Location):
-    def __init__(self):
-        super().__init__("Test")
+    def __init__(self, world: World):
+        super().__init__("Test", world)
         self.description = "You are at the test location."
         self.items = ["Test Item"]
         self.adjacent_locations = []
 
-
-class Camp(Location):
-    def __init__(self):
-        super().__init__("Camp")
-        self.description = "You are at the camp."
-        self.items = ["Wood"]
+class EntryWay(Location):
+    def __init__(self, world: World):
+        super().__init__("Entryway", world)
+        self.description = "You are at the entryway. There is a locked door and a table with some objects on it."
+        self.items = ["Key"]
         self.adjacent_locations = []
+        self.door_unlocked = False  
 
-    def build_shelter(self, agent: 'Agent'):
-        if "Wood" in agent.inventory:
-            agent.inventory.remove("Wood")
-            return "You have built a shelter."
+    def unlock_door(self) -> str:
+        """
+        Unlock the door under the condition that the agent has the key.
+
+        Returns:
+            A string describing the result of the action
+        """
+        if "Key" in self.world.agent.inventory:
+            self.door_unlocked = True 
+            return "You have unlocked the door."
         else:
-            return "You do not have enough wood to build a shelter."
+            return "You do not have the key to unlock the door."
+

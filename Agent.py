@@ -6,12 +6,11 @@ import json
 import inspect
 
 class Agent:
-    def __init__(self, client: AzureOpenAI, system_prompt: str):
+    def __init__(self, client: AzureOpenAI):
         self.inventory = []
         self.current_location: Location = None
         self.client: AzureOpenAI = client
-        self.system_prompt = system_prompt
-        self.messages = [{"role": "system", "content": self.system_prompt}]
+        self.messages = None
 
     def _resolve_tool_call(self, tool_call, tools_map):
         name = tool_call.function.name
@@ -29,14 +28,13 @@ class Agent:
         # Call the bound method with the arguments
         return method(**args)
 
-
-    def respond(self, message: str):
-        self.messages.append({"role": "user", "content": message})
+    def act(self):
         response = self.client.chat.completions.create(
             model="gpt-4o-2",
             messages=self.messages,
             tools=[function_to_schema(action) for action in self.current_location.available_actions]
         )
+        self.messages.append(response.choices[0].message)
         if response.choices[0].message.tool_calls:
             for tool_call in response.choices[0].message.tool_calls:
                 # Create a map of function names to bound methods
@@ -49,4 +47,5 @@ class Agent:
                     {"role": "tool", 
                      "tool_call_id": tool_call.id,
                      "content": result})
+                print(result)
         return response.choices[0].message

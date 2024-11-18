@@ -1,4 +1,5 @@
 import inspect
+import json
 
 def function_to_schema(func) -> dict:
     type_map = {
@@ -46,3 +47,12 @@ def function_to_schema(func) -> dict:
             },
         },
     }
+
+def execute_tool_call(tool_call, tools_map):
+    name = tool_call.function.name
+    args = json.loads(tool_call.function.arguments)
+
+    print(f"Assistant: {name}({args})")
+
+    # call corresponding function with provided arguments
+    return tools_map[name](**args)

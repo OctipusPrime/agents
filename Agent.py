@@ -18,6 +18,10 @@ class Agent:
 
         print(f"Agent: {name}({args})")
 
+        # Check if the function exists in the tools map
+        if name not in tools_map:
+            return f"Error: The action '{name}' is not available at this location."
+
         # Get the bound method from the location
         method = tools_map[name]
         
@@ -47,5 +51,6 @@ class Agent:
                     {"role": "tool", 
                      "tool_call_id": tool_call.id,
                      "content": result})
-                print(result)
+                if tool_call.function.name != "think":
+                    print(result)
         return response.choices[0].message

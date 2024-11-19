@@ -11,7 +11,7 @@ class World:
         self.locations[location.name] = location
 
     def check_for_completion(self) -> bool:
-        entryway = self.locations.get('Entryway')
-        if entryway and entryway.door_unlocked:
+        control_room = self.locations.get('control_room')
+        if control_room and control_room.generator_activated:
             return True
         return False

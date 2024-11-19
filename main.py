@@ -1,9 +1,8 @@
 from openai import AzureOpenAI
 import os
-import json
 
 from Agent import Agent
-from Locations import EntryWay
+from Locations import ControlRoom, EngineRoom
 from World import World
 from prompts import system_prompt, goal_prompt, nudge_prompt
 client = AzureOpenAI(
@@ -15,10 +14,12 @@ client = AzureOpenAI(
 # Instantiate world, agent, and locations
 agent = Agent(client=client)
 world = World(agent=agent)
-entryway = EntryWay(world=world)
-print(entryway.available_actions)
-world.add_location(entryway)
-agent.current_location = entryway
+control_room = ControlRoom(world=world)
+engine_room = EngineRoom(world=world)
+print(engine_room.available_actions)
+world.add_location(control_room)
+world.add_location(engine_room)
+agent.current_location = control_room
 
 def main():
     # Set up initial state
@@ -40,9 +41,11 @@ def main():
             print("Pre-nudge message:", message.content)
             # Nudge agent
             agent.messages.extend([
+                {"role": "assistant", "content": message.content},
                 {"role": "user", "content": nudge_prompt},
             ])
             world.number_of_nudges += 1
+    print("Nudges exhausted!")
 
 if __name__ == "__main__":
     main()

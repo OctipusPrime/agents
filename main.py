@@ -16,7 +16,6 @@ agent = Agent(client=client)
 world = World(agent=agent)
 control_room = ControlRoom(world=world)
 engine_room = EngineRoom(world=world)
-print(engine_room.available_actions)
 world.add_location(control_room)
 world.add_location(engine_room)
 agent.current_location = control_room

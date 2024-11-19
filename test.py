@@ -22,4 +22,4 @@ world.add_location(engine_room)
 agent.current_location = control_room
 
 
-print(control_room.look_up_database("SELECT * FROM df WHERE status = 'active'"))
+print(control_room.use_database("SELECT * FROM crew WHERE role = 'Captain'"))

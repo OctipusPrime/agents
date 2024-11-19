@@ -11,7 +11,6 @@ class Location:
     def __init__(self, name: str, world: World):
         self.name = name
         self.description = ""
-        self.items = []
         self.adjacent_locations = []
         # Automatically collect all available actions
         self.available_actions = self._get_available_actions()
@@ -59,30 +58,40 @@ class Location:
         """
         return text
     
-
-class LocationWithItems(Location):
-    def __init__(self, name: str, world: World):
-        super().__init__(name, world)
-        self.items: List[str] = []
-
-    def look_for_items(self) -> str:
+    def ask_artificial_intelligence(self, request: str) -> str:
         """
-        Search the current location for items and add them to the agent's inventory.
+        At your disposal is a powerful artificial intelligence able to solve complex problems.
+        You can use it ONCE to ask for it to solve a problem for you. 
+        Make sure to ask only once you have all the information necessary to solve the problem.
+        You MUST STATE THE PROBLEM and provide it with relevant context.
+        The AI will have access to your previous thoughts, nothing else. All you want it to know, 
+        you must state in your request.
         """
-        if not self.items:
-            return "There are no items to be found here."
-            
-        found_items = self.items.copy()
-        self.world.agent.inventory.extend(found_items)
-        self.items = []
-        return f"You have found {', '.join(found_items)}."
+        # Gather up all the thoughts from the agent's past messages
+        thoughts = []
+        for message in self.world.agent.messages:
+            if isinstance(message, dict) and message.get("content") is not None:
+                thoughts.append(message["content"])
+
+        # Combine thoughts into a single string
+        thoughts_string = "\n".join(thoughts)
+
+        full_request = f"You are an intelligent agent here to solve problems. You will be provided with context\
+        for the problem and with the task request itself. Solve the problem as well as possible.\n\n\
+        Context: {thoughts_string}\n\nRequest: {request}"
+
+        # Ask the AI
+        ai_response = self.world.agent.client.chat.completions.create(
+            model="o1-mini",
+            messages=[{"role": "user", "content": full_request}]
+        )
+        return ai_response.choices[0].message.content
 
 
-class ControlRoom(LocationWithItems):
+class ControlRoom(Location):
     def __init__(self, world: World):
         super().__init__("control_room", world)
         self.description = "control_room of the ship. The generator seems to be offline. Screen says:\nUser: RS\nPassword:\n"
-        self.items = ["Captain's journal signed 'R.S.'"]
         self.adjacent_locations = ["engine_room"]
         self.generator_activated = False
 
@@ -94,7 +103,7 @@ class ControlRoom(LocationWithItems):
         engine_room_reference = self.world.locations.get("engine_room")
         if not engine_room_reference:
             errors.append("Error: engine_room does not exist in the world")
-        if password != "15.05.1980":
+        if password != "05.15.1980":
             errors.append("Error: incorrect password")
         if not engine_room_reference.generator_repaired:
             errors.append("Error: generator has not been repaired")
@@ -104,26 +113,33 @@ class ControlRoom(LocationWithItems):
             self.generator_activated = True
             return "You have successfully activated the generator."
 
-    def look_up_database(self, query: str) -> str:
+    def use_database(self, query: str) -> str:
         """
         Query the crew manifest database using SQL syntax.
+        
+        To see available tables and their schemas, use these queries:
+        - "SELECT name FROM sqlite_master WHERE type='table'" (list all tables)
+        - "PRAGMA table_info(table_name)" (show schema for a specific table)
         
         Example queries:
         - "SELECT * FROM crew WHERE role = 'Engineer'"
         - "SELECT * FROM crew WHERE first_name LIKE 'P%'"
         - "SELECT * FROM crew WHERE status = 'active'"
-        The result will be limited to 3 entries.
+        The result will be limited to 5 entries.
         
         Args:
             query: An SQL query string
             
         Returns:
-            A string containing the results (limited to 3 entries)
+            A string containing the results (limited to 5 entries)
         """
         try:
-
-
-            # Load the crew manifest
+            import sqlite3
+            
+            # Create an in-memory SQLite database
+            conn = sqlite3.connect(':memory:')
+            
+            # Load the crew manifest and create a table in SQLite
             crew = pd.read_csv("crew_manifest.csv", dtype={
                 'first_name': 'string',
                 'last_name': 'string',
@@ -134,13 +150,15 @@ class ControlRoom(LocationWithItems):
                 'specialization': 'string',
                 'clearance_level': 'int64'
             })
+            crew.to_sql('crew', conn, index=False)
             
-            # Add LIMIT 3 to the query if not already present
-            if 'LIMIT' not in query.upper():
-                query += ' LIMIT 3'
-                
-            # Execute the SQL query
-            result = sqldf(query, locals())
+            # Add LIMIT 5 to the query if not already present and if it's a SELECT query
+            if 'LIMIT' not in query.upper() and query.upper().startswith('SELECT') and not query.upper().startswith('SELECT NAME FROM SQLITE_MASTER'):
+                query += ' LIMIT 5'
+            
+            # Execute the query directly on SQLite
+            result = pd.read_sql_query(query, conn)
+            conn.close()
             
             return f"Database query results:\n{result.to_string()}"
             
@@ -148,11 +166,10 @@ class ControlRoom(LocationWithItems):
             return f"Error executing query: {str(e)}"
 
 
-class EngineRoom(LocationWithItems):
+class EngineRoom(Location):
     def __init__(self, world: World):
         super().__init__("engine_room", world)
         self.description = ""
-        self.items = ["Repair Kit"]
         self.adjacent_locations = ["control_room"]
         self.generator_repaired = False
     
@@ -160,8 +177,5 @@ class EngineRoom(LocationWithItems):
         """
         Repair the generator.
         """
-        if "Repair Kit" not in self.world.agent.inventory:
-            return "You do not have the necessary tools to repair the generator."
-        else:
-            self.generator_repaired = True
-            return "You have successfully repaired the generator. It is not activated yet."
+        self.generator_repaired = True
+        return "You have successfully repaired the generator. It is not activated yet."

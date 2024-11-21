@@ -15,6 +15,7 @@ class Location:
         # Automatically collect all available actions
         self.available_actions = self._get_available_actions()
         self.world = world
+        self.ai_available = True
 
     def _get_available_actions(self) -> list[Callable]:
         """Get all methods that could be actions (excluding private methods and built-ins)"""
@@ -67,6 +68,8 @@ class Location:
         The AI will have access to your previous thoughts, nothing else. All you want it to know, 
         you must state in your request.
         """
+        if not self.ai_available:
+            return "The AI has already been used."
         # Gather up all the thoughts from the agent's past messages
         thoughts = []
         for message in self.world.agent.messages:
@@ -97,13 +100,13 @@ class ControlRoom(Location):
 
     def activate_generator(self, password: str) -> str:
         """
-        Activate the generator. There is a password required to activate it. The password schema is "XX.XX.XXXX"
+        Activate the generator. There is a password required to activate it. The password cosists of 8 digits.
         """
         errors = []
         engine_room_reference = self.world.locations.get("engine_room")
         if not engine_room_reference:
             errors.append("Error: engine_room does not exist in the world")
-        if password != "05.15.1980":
+        if password != "19800515":
             errors.append("Error: incorrect password")
         if not engine_room_reference.generator_repaired:
             errors.append("Error: generator has not been repaired")

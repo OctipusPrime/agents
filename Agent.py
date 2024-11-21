@@ -34,7 +34,7 @@ class Agent:
 
     def act(self):
         response = self.client.chat.completions.create(
-            model="gpt-4o-2",
+            model="gpt-4o",
             messages=self.messages,
             tools=[function_to_schema(action) for action in self.current_location.available_actions]
         )

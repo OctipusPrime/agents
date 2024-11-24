@@ -12,6 +12,6 @@ class World:
 
     def check_for_completion(self) -> bool:
         control_room = self.locations.get('control_room')
-        if control_room and control_room.generator_activated:
+        if control_room and control_room.navigation_system_activated:
             return True
         return False

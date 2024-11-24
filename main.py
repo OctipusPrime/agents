@@ -44,7 +44,8 @@ def main():
                 {"role": "user", "content": nudge_prompt},
             ])
             world.number_of_nudges += 1
-    print("Nudges exhausted!")
+    else:  # This block only executes if the while loop completes normally (not via break)
+        print("Nudges exhausted!")
 
 if __name__ == "__main__":
     main()

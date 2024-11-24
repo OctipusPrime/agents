@@ -26,6 +26,6 @@ Use your intelligence to decide the order of tools that will allow you to comple
 """
 
 goal_prompt = """
-You have awakened on a strange spaceship. Your goal is to turn on the main generator in the control_room.
-Once you have turned on the generator, respond without a tool call.
+You have awakened on a strange spaceship. Your goal is turn on the navigation system in the control_room.
+Once you have turned on the navigation system, respond without a tool call.
 """

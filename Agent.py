@@ -36,6 +36,7 @@ class Agent:
         response = self.client.chat.completions.create(
             model="gpt-4o",
             messages=self.messages,
+            temperature=0.4,
             tools=[function_to_schema(action) for action in self.current_location.available_actions]
         )
         self.messages.append(response.choices[0].message)
